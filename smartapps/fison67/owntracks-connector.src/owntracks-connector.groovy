@@ -1,5 +1,5 @@
 /**
- *  Owntracks Connector (v.0.0.1)
+ *  Owntracks Connector (v.0.0.2)
  *
  * MIT License
  *
@@ -45,6 +45,8 @@ definition(
 preferences {
    page(name: "mainPage")
    page(name: "addPage")
+   page(name: "addManualPage")
+   page(name: "addManualCompletePage")
    page(name: "registeredPage")
 }
 
@@ -55,6 +57,7 @@ def mainPage() {
        	section() {
             paragraph "OwnTrack Http URL"
             href "addPage", title:"ADD Device", description:""
+            href "addManualPage", title:"ADD Manual Device", description:""
             href url:"${apiServerUrl("/api/smartapps/installations/${app.id}/config?access_token=${state.accessToken}")}", style:"embedded", required:false, title:"Config", description:"Copy this text to Owntracks"
        	}
         section("Configure Google GeoCoding API Key"){
@@ -77,6 +80,26 @@ def addPage(){
             section("Complete.") {
                 paragraph "USER ID: ${tmp[1]}, DEVICE ID: ${tmp[2]}"
             }
+        }
+    }
+}
+
+
+def addManualPage(){
+	dynamicPage(name: "addManualPage", title:"Type a ID", nextPage:"addManualCompletePage") {
+    	section ("Select") {
+        	input(name: "manualID", type: "number", title: "Type", description: null, multiple: false, required: true, submitOnChange: true)
+        }
+        if(manualID){
+        	addDevice(manualID)
+        }
+    }
+}
+
+def addManualCompletePage(){
+	dynamicPage(name:"addManualCompletePage", title:"This device is registered.", nextPage: "mainPage") {
+        section("Complete.") {
+            paragraph "Complete ID: ${manualID}"
         }
     }
 }
@@ -107,6 +130,13 @@ def initialize() {
         }catch(e){
         }
     }
+}
+
+def addDevice(id){
+    def dni = "owntracks-connector-${id}"
+	def childDevice = addChildDevice("fison67", "OwnTracks Sensor", dni, getLocationID(), [
+        "label": "OwnTracks Manual"
+    ])
 }
 
 def updateDevice(){
