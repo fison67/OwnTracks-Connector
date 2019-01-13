@@ -1,5 +1,5 @@
  /**
- *  OwnTracks Sensor (v.0.0.1)
+ *  OwnTracks Sensor (v.0.0.2)
  *
  * MIT License
  *
@@ -43,7 +43,11 @@ metadata {
 	simulator {}
     
     preferences {
-        input name: "baseAddress", title:"Base Address" , type: "string", required: false
+        input name: "baseAddressCheck", title:"Base Address #1" , type: "enum", required: true, options: ["on", "off"], defaultValue: "off"
+        input name: "baseAddress1", title:"Base Address #1 (경기도, 서울특별시)" , type: "string", required: false
+        input name: "baseAddress2", title:"Base Address #2 (안양시)" , type: "string", required: false
+        input name: "baseAddress3", title:"Base Address #3 (만안구, 중구)" , type: "string", required: false
+        input name: "baseAddress4", title:"Base Address #4 (안양동, 태평로1가)" , type: "string", required: false
     }
 
 	tiles {
@@ -96,11 +100,7 @@ def setStatus(jsonObj){
     def type = jsonObj.topic.split("/")[3]
     switch(type){
     case "event":
-    	def event = jsonObj.event
-        checkAddress(event, jsonObj.lat, jsonObj.lon)
-        if(baseAddress == null || baseAddress == ""){
-            setCurrentValue(event)
-        }
+        checkAddress(jsonObj.event, jsonObj.lat, jsonObj.lon)
     	break
     }
     
@@ -119,25 +119,61 @@ def checkAddress(event, lat, lon){
         try {
             httpGet(params) { resp ->
                 def address = resp.data.results[0].formatted_address
-    			sendEvent(name: "address", value: address)
-                if(baseAddress != null && baseAddress != ""){
-                	if(address.indexOf(baseAddress) > -1){
-                		setCurrentValue(event)
-                    }else{
-                    	state.errCount = state.errCount + 1
-                        if(state.errCount == 100){
-                        	state.errCount = 0
+                def addressOK = true
+                def errMessage = ""
+                if(baseAddressCheck == "on"){
+                    def list = resp.data.results[0].address_components
+                    list.each { item ->
+                        if(item.types.contains("administrative_area_level_1")){
+							if(baseAddress1 != "" && item.short_name != baseAddress1){
+                            	addressOK = false
+                                errMessage = "Base#1 ${baseAddress1} / ${item.short_name}" 
+                            }
+                        }else if(item.types.contains("locality")){
+							if(baseAddress2 != "" && item.short_name != baseAddress2){
+                            	addressOK = false
+                                errMessage = errMessage + "\nBase#2 ${baseAddress2} / ${item.short_name}" 
+                            }
+                        }else if(item.types.contains("sublocality_level_1")){
+							if(baseAddress3 != "" && item.short_name != baseAddress3){
+                            	addressOK = false
+                                errMessage = errMessage + "\nBase#3 ${baseAddress3} / ${item.short_name}" 
+                            }
+                        }else if(item.types.contains("sublocality_level_2")){
+							if(baseAddress4 != ""){
+                        		def _baseAddr = baseAddress4.split(",")
+                                def _subAddrOK = false
+                                _baseAddr.each{ _addr->
+                                	if(item.short_name.indexOf(_addr) > -1){
+                                    	_subAddrOK = true
+                                    }
+                                }
+                            	addressOK = _subAddrOK
+                                errMessage = errMessage + "\nBase#4 ${baseAddress4} / ${item.short_name}" 
+                            }
                         }
-                    	def msg = "Address is wrong!!! Base Address: ${baseAddress}, called Address: ${address} #${state.errCount}"
-                    	log.error msg
-                        sendEvent(name: "errorAddress", value: msg)
                     }
+                    log.debug "Address check >> ${addressOK}"
+                }
+                
+    			sendEvent(name: "address", value: address)
+                if(addressOK){
+                	setCurrentValue(event)
                 }else{
+                	state.errCount = state.errCount + 1
+                    if(state.errCount == 100){
+                        state.errCount = 0
+                    }
+                    def msg = "Address is wrong!!! ${errMessage} #${state.errCount}"
+                    log.error msg
+                    sendEvent(name: "errorAddress", value: msg)
                 }
             }
         } catch (e) {
             log.error "something went wrong: $e"
         }
+    }else{
+    	setCurrentValue(event)
     }
     
 }
