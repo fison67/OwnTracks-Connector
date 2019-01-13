@@ -46,7 +46,6 @@ preferences {
    page(name: "mainPage")
    page(name: "addPage")
    page(name: "addManualPage")
-   page(name: "addManualCompletePage")
    page(name: "registeredPage")
 }
 
@@ -86,18 +85,10 @@ def addPage(){
 
 
 def addManualPage(){
-	dynamicPage(name: "addManualPage", title:"Type a ID", nextPage:"addManualCompletePage") {
+	dynamicPage(name: "addManualPage", title:"Type a ID", nextPage:"mainPage") {
     	section ("Select") {
-        	input(name: "manualID", type: "number", title: "Type", description: null, multiple: false, required: true, submitOnChange: true)
-        }
-    }
-}
-
-def addManualCompletePage(){
-	addDevice(manualID)
-	dynamicPage(name:"addManualCompletePage", title:"This device is registered.", nextPage: "mainPage") {
-        section("Complete.") {
-            paragraph "Complete ID: ${manualID}"
+        	paragraph "Type a id & click done & press a save button"
+        	input(name: "manualID", type: "number", title: "Type", description: null, multiple: false, required: true)
         }
     }
 }
@@ -128,19 +119,27 @@ def initialize() {
         }catch(e){
         }
     }
+    
+    
+    if(manualID > -1){
+        addDevice(manualID)
+        app.updateSetting("manualID", -1)
+    }
 }
 
 def addDevice(id){
 	try{
-        def dni = "owntracks-connector-${id}"
-        def chlid = getChildDevice(dni)
-        if(!chlid){
-            def childDevice = addChildDevice("fison67", "OwnTracks Sensor", dni, getLocationID(), [
-                "label": "OwnTracks Manual"
-            ])
+    	if(id){
+            def dni = "owntracks-connector-${id}"
+            def chlid = getChildDevice(dni)
+            if(!chlid){
+                def childDevice = addChildDevice("fison67", "OwnTracks Sensor", dni, getLocationID(), [
+                    "label": "OwnTracks Manual"
+                ])
+            }
         }
     }catch(err){
-    	log.error(err)
+    	log.debug err 
     }
 }
 
