@@ -90,13 +90,11 @@ def addManualPage(){
     	section ("Select") {
         	input(name: "manualID", type: "number", title: "Type", description: null, multiple: false, required: true, submitOnChange: true)
         }
-        if(manualID){
-        	addDevice(manualID)
-        }
     }
 }
 
 def addManualCompletePage(){
+	addDevice(manualID)
 	dynamicPage(name:"addManualCompletePage", title:"This device is registered.", nextPage: "mainPage") {
         section("Complete.") {
             paragraph "Complete ID: ${manualID}"
@@ -133,10 +131,17 @@ def initialize() {
 }
 
 def addDevice(id){
-    def dni = "owntracks-connector-${id}"
-	def childDevice = addChildDevice("fison67", "OwnTracks Sensor", dni, getLocationID(), [
-        "label": "OwnTracks Manual"
-    ])
+	try{
+        def dni = "owntracks-connector-${id}"
+        def chlid = getChildDevice(dni)
+        if(!chlid){
+            def childDevice = addChildDevice("fison67", "OwnTracks Sensor", dni, getLocationID(), [
+                "label": "OwnTracks Manual"
+            ])
+        }
+    }catch(err){
+    	log.error(err)
+    }
 }
 
 def updateDevice(){
