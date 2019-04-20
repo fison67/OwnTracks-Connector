@@ -38,53 +38,19 @@ metadata {
         attribute "lastCheckin", "Date"
          
         command "setStatus"
+        command "setPresence"
 	}
 
 	simulator {}
     
     preferences {
-        input name: "baseAddressCheck", title:"Base Address #1" , type: "enum", required: true, options: ["on", "off"], defaultValue: "off"
+        input name: "autoSetNotPresent", title:"자동 꺼짐" , type: "number", required: true, defaultValue: 0
+        input name: "baseAddressCheck", title:"Address Check ON/OFF" , type: "enum", required: true, options: ["on", "off"], defaultValue: "off"
         input name: "baseAddress1", title:"Base Address #1 (경기도, 서울특별시)" , type: "string", required: false
         input name: "baseAddress2", title:"Base Address #2 (안양시)" , type: "string", required: false
         input name: "baseAddress3", title:"Base Address #3 (만안구, 중구)" , type: "string", required: false
         input name: "baseAddress4", title:"Base Address #4 (안양동, 태평로1가)" , type: "string", required: false
     }
-
-	tiles {
-		multiAttributeTile(name:"presence", type: "generic", width: 6, height: 4){
-			tileAttribute ("device.presence", key: "PRIMARY_CONTROL") {
-               	attributeState "not present", label:'${name}', backgroundColor: "#ffffff", icon:"st.presence.tile.presence-default" 
-            	attributeState "present", label:'present', backgroundColor: "#53a7c0", icon:"st.presence.tile.presence-default" 
-			}
-            
-            tileAttribute("device.lastCheckin", key: "SECONDARY_CONTROL") {
-    			attributeState("default", label:'\nLast Update: ${currentValue}')
-            }
-		}
-        
-        valueTile("lastPresnce_label", "", decoration: "flat") {
-            state "default", label:'Last\nIn'
-        }
-        valueTile("lastPresnce", "device.lastPresnce", decoration: "flat", width: 3, height: 1) {
-            state "default", label:'${currentValue}'
-        }
-        standardTile("refresh", "device.refresh", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
-            state "default", label:""
-        }
-        valueTile("lastNotPresnce_label", "", decoration: "flat") {
-            state "default", label:'Last\nOut'
-        }
-        valueTile("lastNotPresnce", "device.lastNotPresnce", decoration: "flat", width: 3, height: 1) {
-            state "default", label:'${currentValue}'
-        }
-        valueTile("empty_label", "", decoration: "flat", width:1, height: 1) {
-            state "default", label:''
-        }
-        valueTile("address", "device.address", decoration: "flat", width: 5, height: 1) {
-            state "default", label:'${currentValue}'
-        }
-	}
-
 }
 
 // parse events into attributes
@@ -186,8 +152,19 @@ def setCurrentValue(event){
         sendEvent(name: "lastNotPresnce", value: now, displayed: false )
     }
     sendEvent(name: "presence", value: event == "enter" ? "present" : "not present")
+    if(event == "enter" && autoSetNotPresent > 0){
+        def _now = new Date()
+        def runTime = new Date(_now.getTime() + (autoSetNotPresent * 1000))
+    	runOnce(runTime, setPresence)
+    }
 }
 
 def updated() {
 	state.errCount = 0
+}
+
+def setPresence(){
+	def now = new Date().format("yyyy-MM-dd HH:mm:ss", location.timeZone)
+	sendEvent(name: "presence", value: "not present")
+    sendEvent(name: "lastNotPresnce", value: now, displayed: false )
 }
