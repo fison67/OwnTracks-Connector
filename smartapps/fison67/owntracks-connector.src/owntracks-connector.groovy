@@ -49,7 +49,9 @@ preferences {
    page(name: "registeredPage")
 }
 
+
 def mainPage() {
+	log.debug getFullApiServerUrl()
 	state.workMode = "main"
     state.added = ""
 	dynamicPage(name: "mainPage", title: "OwnTracks", nextPage: null, uninstall: true, install: true) {
@@ -57,7 +59,7 @@ def mainPage() {
             paragraph "OwnTrack Http URL"
             href "addPage", title:"ADD Device", description:""
             href "addManualPage", title:"ADD Manual Device", description:""
-            href url:"${apiServerUrl("/api/smartapps/installations/${app.id}/config?access_token=${state.accessToken}")}", style:"embedded", required:false, title:"Config", description:"Copy this text to Owntracks"
+			href url: getFullApiServerUrl() + "/config?access_token=${state.accessToken})", style:"embedded", required:false, title:"Config", description:"Copy this text to Owntracks"
        	}
         section("Configure Google GeoCoding API Key"){
            input "googleKey", "string", title: "Google GeoCoding API Key", required: false
@@ -194,17 +196,11 @@ def authError() {
 }
 
 def renderConfig() {
-    def url = ( apiServerUrl("/api/smartapps/installations/") + app.id + "/update?access_token=" + state.accessToken )
+    def url = ( getFullApiServerUrl() + "/update?access_token=" + state.accessToken )
     render contentType: "text/plain", data: url
 }
 
 mappings {
-    if (!params.access_token || (params.access_token && params.access_token != state.accessToken)) {
-        path("/config")                         { action: [GET: "authError"] }
-        path("/update")                         { action: [POST: "authError"]  }
-
-    } else {
-        path("/config")                         { action: [GET: "renderConfig"]  }
-        path("/update")                         { action: [POST: "updateDevice"]  }
-    }
+	path("/config")                         { action: [GET: "renderConfig"]  }
+	path("/update")                         { action: [POST: "updateDevice"]  }
 }
