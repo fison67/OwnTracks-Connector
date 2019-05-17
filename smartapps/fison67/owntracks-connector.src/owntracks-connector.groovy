@@ -59,8 +59,8 @@ def mainPage() {
             paragraph "OwnTrack Http URL"
             href "addPage", title:"ADD Device", description:""
             href "addManualPage", title:"ADD Manual Device", description:""
-			href url: getFullApiServerUrl() + "/config?access_token=${state.accessToken})", style:"embedded", required:false, title:"Config", description:"Copy this text to Owntracks"
-       	}
+		    href url:"${localApiServerUrl("${app.id}/config?access_token=${state.accessToken}")}", style:"embedded", required:false, title:"Config", description:"Copy this text to Owntracks"
+		}
         section("Configure Google GeoCoding API Key"){
            input "googleKey", "string", title: "Google GeoCoding API Key", required: false
        }
