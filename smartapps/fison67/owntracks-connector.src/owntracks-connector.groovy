@@ -1,5 +1,5 @@
 /**
- *  Owntracks Connector (v.0.0.2)
+ *  Owntracks Connector (v.0.0.3)
  *
  * MIT License
  *
@@ -60,7 +60,7 @@ def mainPage() {
             href url:"${apiServerUrl("/api/smartapps/installations/${app.id}/config?access_token=${state.accessToken}")}", style:"embedded", required:false, title:"Config", description:"Copy this text to Owntracks"
        	}
         section("Configure Google GeoCoding API Key"){
-           input "googleKey", "string", title: "Google GeoCoding API Key", required: false
+           input "googleKey", "text", title: "Google GeoCoding API Key", required: false
        }
     }
 }
