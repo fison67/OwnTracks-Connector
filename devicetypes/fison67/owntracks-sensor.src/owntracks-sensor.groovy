@@ -1,5 +1,5 @@
  /**
- *  OwnTracks Sensor (v.0.0.2)
+ *  OwnTracks Sensor (v.0.0.3)
  *
  * MIT License
  *
@@ -31,19 +31,13 @@ import groovy.json.JsonSlurper
 
 metadata {
 	definition (name: "OwnTracks Sensor", namespace: "fison67", author: "fison67") {
-		capability "Presence Sensor"
       	capability "Sensor"
-        
-        attribute "address", "string"
-        attribute "lastCheckin", "Date"
-         
-        command "setStatus"
 	}
 
 	simulator {}
     
     preferences {
-        input name: "baseAddressCheck", title:"Base Address #1" , type: "enum", required: true, options: ["on", "off"], defaultValue: "off"
+        input name: "baseAddressCheck", title:"Address Check ON/OFF" , type: "enum", required: true, options: ["on", "off"], defaultValue: "off"
         input name: "baseAddress1", title:"Base Address #1 (경기도, 서울특별시)" , type: "string", required: false
         input name: "baseAddress2", title:"Base Address #2 (안양시)" , type: "string", required: false
         input name: "baseAddress3", title:"Base Address #3 (만안구, 중구)" , type: "string", required: false
@@ -51,38 +45,11 @@ metadata {
     }
 
 	tiles {
-		multiAttributeTile(name:"presence", type: "generic", width: 6, height: 4){
-			tileAttribute ("device.presence", key: "PRIMARY_CONTROL") {
-               	attributeState "not present", label:'${name}', backgroundColor: "#ffffff", icon:"st.presence.tile.presence-default" 
-            	attributeState "present", label:'present', backgroundColor: "#53a7c0", icon:"st.presence.tile.presence-default" 
-			}
-            
-            tileAttribute("device.lastCheckin", key: "SECONDARY_CONTROL") {
-    			attributeState("default", label:'\nLast Update: ${currentValue}')
-            }
-		}
-        
-        valueTile("lastPresnce_label", "", decoration: "flat") {
-            state "default", label:'Last\nIn'
-        }
-        valueTile("lastPresnce", "device.lastPresnce", decoration: "flat", width: 3, height: 1) {
+        valueTile("address", "device.address", decoration: "flat", width: 4, height: 1) {
             state "default", label:'${currentValue}'
         }
-        standardTile("refresh", "device.refresh", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
-            state "default", label:""
-        }
-        valueTile("lastNotPresnce_label", "", decoration: "flat") {
-            state "default", label:'Last\nOut'
-        }
-        valueTile("lastNotPresnce", "device.lastNotPresnce", decoration: "flat", width: 3, height: 1) {
-            state "default", label:'${currentValue}'
-        }
-        valueTile("empty_label", "", decoration: "flat", width:1, height: 1) {
-            state "default", label:''
-        }
-        valueTile("address", "device.address", decoration: "flat", width: 5, height: 1) {
-            state "default", label:'${currentValue}'
-        }
+        childDeviceTiles("all")
+       
 	}
 
 }
@@ -100,7 +67,7 @@ def setStatus(jsonObj){
     def type = jsonObj.topic.split("/")[3]
     switch(type){
     case "event":
-        checkAddress(jsonObj.event, jsonObj.lat, jsonObj.lon)
+        checkAddress(jsonObj.event, jsonObj.lat, jsonObj.lon, jsonObj.desc)
     	break
     }
     
@@ -111,8 +78,17 @@ def setAPIKey(key){
 	state.apiKey = key
 }
 
-def checkAddress(event, lat, lon){
-	if(state.apiKey != null && state.apiKey != ""){
+def isAddressFunctionOn(){
+	def val = settings.baseAddressCheck
+    if(val == null || val == ""){
+    	return false
+    }
+    return val == "on" ? true : false
+}
+
+def checkAddress(event, lat, lon, target){
+log.debug target
+	if(isAddressFunctionOn() && state.apiKey != null && state.apiKey != ""){
         def params = [
             uri: "https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&language=ko&key=${state.apiKey}"
         ]
@@ -158,7 +134,7 @@ def checkAddress(event, lat, lon){
                 
     			sendEvent(name: "address", value: address)
                 if(addressOK){
-                	setCurrentValue(event)
+                	setCurrentValue(event, target)
                 }else{
                 	state.errCount = state.errCount + 1
                     if(state.errCount == 100){
@@ -173,19 +149,19 @@ def checkAddress(event, lat, lon){
             log.error "something went wrong: $e"
         }
     }else{
-    	setCurrentValue(event)
+    	setCurrentValue(event, target)
     }
     
 }
 
-def setCurrentValue(event){
-    def now = new Date().format("yyyy-MM-dd HH:mm:ss", location.timeZone)
-	if(device.currentValue("presence") == "not present" && event == "enter"){
-        sendEvent(name: "lastPresnce", value: now, displayed: false )
-    }else if(device.currentValue("presence") == "present" && event == "leave"){
-        sendEvent(name: "lastNotPresnce", value: now, displayed: false )
+def setCurrentValue(event, target){
+    def childName = "${device.deviceNetworkId}_${target}"
+	def child = childDevices.find { it.deviceNetworkId == childName }
+    if(!child){
+    	def childDevice =  addChildDevice("OwnTracks Child Sensor", childName , null, [completedSetup: true, label: "${device.label} ${target}", componentName: "Child Sensor", componentLabel: "Child Sensor", isComponent: false])
+    }else{
+    	child.setStatus(event)
     }
-    sendEvent(name: "presence", value: event == "enter" ? "present" : "not present")
 }
 
 def updated() {
