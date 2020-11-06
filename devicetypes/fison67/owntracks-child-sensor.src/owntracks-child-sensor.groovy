@@ -1,5 +1,5 @@
 /**
- *  OwnTracks Child Sensor (v.0.0.1)
+ *  OwnTracks Child Sensor (v.0.0.2)
  *
  * MIT License
  *
@@ -30,12 +30,15 @@
 import groovy.json.JsonSlurper
 
 metadata {
-	definition (name: "OwnTracks Child Sensor", namespace: "fison67", author: "fison67") {
+	definition (name: "OwnTracks Child Sensor", namespace: "fison67", author: "fison67", vid: "generic-arrival") {
 		capability "Presence Sensor"
       	capability "Sensor"
         
         command "setStatus"
         command "setPresence"
+        
+        attribute "lastPresnce", "Date"
+        attribute "lastNotPresnce", "Date"
 	}
 
 	simulator {}
@@ -43,35 +46,6 @@ metadata {
     preferences {
         input name: "autoSetNotPresent", title:"자동 꺼짐" , type: "number", required: true, defaultValue: 0
     }
-
-	tiles {
-		multiAttributeTile(name:"presence", type: "generic", width: 6, height: 4){
-			tileAttribute ("device.presence", key: "PRIMARY_CONTROL") {
-               	attributeState "not present", label:'${name}', backgroundColor: "#ffffff", icon:"st.presence.tile.presence-default" 
-            	attributeState "present", label:'present', backgroundColor: "#53a7c0", icon:"st.presence.tile.presence-default" 
-			}
-            
-            tileAttribute("device.lastCheckin", key: "SECONDARY_CONTROL") {
-    			attributeState("default", label:'\nLast Update: ${currentValue}')
-            }
-		}
-        
-        valueTile("lastPresnce_label", "", decoration: "flat") {
-            state "default", label:'Last\nIn'
-        }
-        valueTile("lastPresnce", "device.lastPresnce", decoration: "flat", width: 3, height: 1) {
-            state "default", label:'${currentValue}'
-        }
-        standardTile("setPresence", "device.setPresence", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
-            state "default", label:"X", action: "setPresence"
-        }
-        valueTile("lastNotPresnce_label", "", decoration: "flat") {
-            state "default", label:'Last\nOut'
-        }
-        valueTile("lastNotPresnce", "device.lastNotPresnce", decoration: "flat", width: 3, height: 1) {
-            state "default", label:'${currentValue}'
-        }
-	}
 
 }
 
@@ -87,13 +61,14 @@ def setStatus(event){
 }
 
 def setCurrentValue(event){
+	log.debug event
     def now = new Date().format("yyyy-MM-dd HH:mm:ss", location.timeZone)
 	if(device.currentValue("presence") == "not present" && event == "enter"){
         sendEvent(name: "lastPresnce", value: now, displayed: false )
     }else if(device.currentValue("presence") == "present" && event == "leave"){
         sendEvent(name: "lastNotPresnce", value: now, displayed: false )
     }
-    sendEvent(name: "presence", value: event == "enter" ? "present" : "not present")
+    sendEvent(name: "presence", value: (event == "enter" ? "present" : "not present"))
     if(event == "enter" && autoSetNotPresent > 0){
         def _now = new Date()
         def runTime = new Date(_now.getTime() + (autoSetNotPresent * 1000))
