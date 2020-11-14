@@ -1,5 +1,5 @@
  /**
- *  OwnTracks Sensor (v.0.0.3)
+ *  OwnTracks Sensor (v.0.0.4)
  *
  * MIT License
  *
@@ -158,12 +158,12 @@ def setCurrentValue(event, target){
     def childName = "${device.deviceNetworkId}_${target}"
 	def child = childDevices.find { it.deviceNetworkId == childName }
     if(!child){
-    	def childDevice =  addChildDevice("OwnTracks Child Sensor", childName , null, [completedSetup: true, label: "${device.label} ${target}", componentName: "Child Sensor", componentLabel: "Child Sensor", isComponent: false])
+    	def childDevice =  addChildDevice("OwnTracks Child Sensor", childName , null, [completedSetup: true, label: "${device.label} ${target}", isComponent: false])
     }else{
     	child.setStatus(event)
     }
 }
 
 def updated() {
-	state.errCount = 0
+
 }
