@@ -1,5 +1,5 @@
 /**
- *  Owntracks Connector (v.0.0.3)
+ *  Owntracks Connector (v.0.0.4)
  *
  * MIT License
  *
@@ -47,6 +47,7 @@ preferences {
    page(name: "addPage")
    page(name: "addManualPage")
    page(name: "registeredPage")
+   page(name: "makeDevicePage")
 }
 
 def mainPage() {
@@ -58,6 +59,7 @@ def mainPage() {
             href "addPage", title:"ADD Device", description:""
             href "addManualPage", title:"ADD Manual Device", description:""
             href url:"${apiServerUrl("/api/smartapps/installations/${app.id}/config?access_token=${state.accessToken}")}", style:"embedded", required:false, title:"Config", description:"Copy this text to Owntracks"
+            href "makeDevicePage", title:"Make a Virtual Device", description:""
        	}
         section("Configure Google GeoCoding API Key"){
            input "googleKey", "text", title: "Google GeoCoding API Key", required: false
@@ -83,8 +85,17 @@ def addPage(){
     }
 }
 
+def makeDevicePage(){
+	log.debug "makeDevicePage"
+	dynamicPage(name:"makeDevicePage", title:"Virtual Devices", submitOnChange: true) {
+    	 section("") {
+             app(name: "childApps", appName: "OwnTracks Connector Piston", namespace: "fison67", title: "Make a Virtual Device", multiple: true)
+         }
+    }
+}
 
 def addManualPage(){
+	log.debug "addManualPage"
 	dynamicPage(name: "addManualPage", title:"Type a ID", nextPage:"mainPage") {
     	section ("Select") {
         	paragraph "Type a id & click done & press a save button"
